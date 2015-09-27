@@ -15,16 +15,24 @@
 		padding: 0;
 		margin: 0;
 	}
-	html, body, #map {
+	html, body {
 		height: 100%;
+	}
+
+	#map{
+		height:calc(100% - 250px)
 	}
 
 	#displaySpeed {
 		text-align: center;
-		line-height: 200px;
-		font-size: 4em;
+	    line-height: 200px;
+	    height: 210px;
 	}
-
+	#locationAddress{
+	text-align: center;
+    font-size: 2em;
+	height:40px
+}
 
 	</style>
 </head>
@@ -34,22 +42,21 @@
 	<div id="displaySpeed">
 
 	</div>
+
+	<div id="locationAddress">
+
+	</div>
 	<div id="map"></div>
 
 
 	<script>
 
 	map = L.map('map');
-    // var bounds = new L.LatLngBounds(myArray);
-    //  map.fitBounds(bounds);
-	map.setView([-36.721277, 174.735857])
+	map.setView([-36.721277, 174.735857], 13)
       mapLink = '<a href="http://openstreetmap.org">OpenStreetMap</a>';
-      L.tileLayer(
-          'http://1.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-              attribution: '&copy; ' + mapLink + ' Contributors',
-              maxZoom: 18,
-          }).addTo(map);
-
+	  L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+	      attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+	  }).addTo(map);
 
 		  var myIcon = L.icon({
 		      iconUrl: 'dist/my-icon.png',
@@ -64,28 +71,20 @@
 
 
 	function positionSuccess(position){
-		// Centre the map on the new location
+		// add marker to map then GET speedlimit for location
 
-		var coords = position.coords || position.coordinate || position;
+
 		console.log('lat:',position.coords.latitude, 'lon:',position.coords.longitude,'timestamp:',position .timestamp)
-		var loc = L.latLng(position.coords.latitude, position.coords.longitude);
-		onLocationFound(loc)
+		var newPnt = L.latLng(position.coords.latitude, position.coords.longitude);
 
-	};
-
-	function positionError(){console.log('failed')}
-
-
-	function onLocationFound(e) {
-console.log('e:',e)
-
-		var newPnt = e//JSON.parse('[' + e.latlng.lat + ', ' + e.latlng.lng + ']')
 		L.marker(newPnt,{icon: myIcon}).addTo(map)
 
 		map.panTo(newPnt);
-		getLinkInfo(e.lat, e.lng)
 
-	}
+		getLinkInfo(position.coords.latitude, position.coords.longitude)
+
+
+	};
 
 
 	function getLinkInfo(lat, lon) {
@@ -98,45 +97,59 @@ console.log('e:',e)
 		$.ajax({url: url,
 			dataType: 'jsonp',
 			jsonp: 'jsoncallback',
-			jsonpCallback: 'onSuccess'});
+			jsonpCallback: 'displaySpeed'});
 
 		}
 
-		function onSuccess(data){
+		function displaySpeed(data){
 
 
-		//var segment = turf.linestring(data.Response.Link[0].Shape)
 
+		//
+		// var shapeArr = []
+		// var shape =  data.Response.Link[0].Shape
+		// for (i = 0; i < shape.length; i++){
+		//
+		// 	var pnt = []
+		// 	shape[i] // "-36.7145882,174.7368774"
+		// 	var pnts = shape[i].split(',') // remove quotes
+		// 	pnt.push(pnts[0] * 1)
+		// 	pnt.push(pnts[1] * 1)
+		//
+		// 	shapeArr.push(pnt)
+		//
+		//
+		// }
+		//
+		// var segment = turf.linestring(shapeArr)
+		//
+		// var unit = 'meters';
+		//
+		// var buffered = turf.buffer(segment, 500, unit);
+		//
+		// L.geoJson(buffered).addTo(map);
+		//
+		//
 
+		var locString = data.Response.Link[0].Address.Street + ' ' +
+						data.Response.Link[0].Address.District
 
 			var spdLimit = Math.round(data.Response.Link[0].SpeedLimit * 3.6)
 			console.log('HERE Obj:',data)
-//			$('#displaySpeed').text(spdLimit + ' km/h')
 
 			var speedImg = '<img src="' + 'dist/sign-' + spdLimit + '.png" />';
 			$('#displaySpeed').html(speedImg)
-
+			$('#locationAddress').html(locString)
 		}
 
 
+		function positionError(){console.log('couldnt get position')}
 
-
-
-
-
-		function onLocationError(e) {
-			alert(e.message);
-		}
-
-
-
-	//	map.on('locationfound', onLocationFound);
-	//	map.on('locationerror', onLocationError);
-	//	map.locate({ setView: true, maxZoom: 16});
 
 var timer = setInterval(function(){
 		getCoords()
 	},1000)
+
 setTimeout(function(){
 		window.clearInterval(timer)
 	}, 200000)
